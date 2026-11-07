@@ -41,16 +41,20 @@ jobs:
         if: github.ref == 'refs/heads/legacy'
         shell: pwsh
         run: |
-          $cab = Join-Path $env:RUNNER_TEMP 'webview2-109.cab'
+          $package = Join-Path $env:RUNNER_TEMP 'webview2-109.nupkg'
+          $expanded = Join-Path $env:RUNNER_TEMP 'webview2-109-package'
           $runtime = 'desktop/src-tauri/WebView2Runtime'
-          New-Item -ItemType Directory -Force -Path $runtime | Out-Null
-          Invoke-WebRequest -Uri 'https://msedge.sf.dl.delivery.mp.microsoft.com/filestreamingservice/files/e97607f4-c5f1-4684-95c3-c61555f08f19/Microsoft.WebView2.FixedVersionRuntime.109.0.1518.78.x64.cab' -OutFile $cab
-          expand.exe -F:* $cab $runtime | Out-Null
-          $browser = Get-ChildItem $runtime -Filter msedgewebview2.exe -Recurse | Select-Object -First 1
+          Invoke-WebRequest -Uri 'https://api.nuget.org/v3-flatcontainer/webview2.runtime.x64/109.0.1518.78/webview2.runtime.x64.109.0.1518.78.nupkg' -OutFile $package
+          Expand-Archive -Path $package -DestinationPath $expanded
+          $browser = Get-ChildItem $expanded -Filter msedgewebview2.exe -Recurse | Select-Object -First 1
           if (-not $browser) { throw 'Fixed WebView2 109 runtime was not extracted' }
           $signature = Get-AuthenticodeSignature $browser.FullName
           if ($signature.Status -ne 'Valid' -or $signature.SignerCertificate.Subject -notmatch 'Microsoft') { throw 'WebView2 runtime signature is not valid' }
-          Write-Host "Verified WebView2 runtime: $($browser.FullName)"
+          $version = $browser.VersionInfo.ProductVersion
+          if ($version -notlike '109.0.1518.78*') { throw "Unexpected WebView2 runtime version: $version" }
+          New-Item -ItemType Directory -Force -Path $runtime | Out-Null
+          Copy-Item (Join-Path $browser.DirectoryName '*') $runtime -Recurse -Force
+          Write-Host "Verified WebView2 runtime $version from NuGet package"
       - name: Build bundled UI
         run: node desktop/scripts/build-ui.mjs
       - name: Build application and installer
