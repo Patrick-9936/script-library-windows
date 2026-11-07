@@ -76,7 +76,18 @@ jobs:
           Start-Process -FilePath $installer.FullName -ArgumentList '/S' -Wait
           $app = Join-Path $env:LOCALAPPDATA 'Script Library Legacy/script-library.exe'
           if (-not (Test-Path $app)) { throw "Legacy app was not installed at $app" }
-          ./desktop/scripts/screenshot.ps1 -Exe $app -OutDir 'dist/screenshots'
+          $installDir = Split-Path $app
+          $runtime = Get-ChildItem $installDir -Filter msedgewebview2.exe -Recurse | Select-Object -First 1
+          if (-not $runtime) { throw 'Fixed WebView2 109 runtime was not installed with the application' }
+          if ($runtime.VersionInfo.ProductVersion -notlike '109.0.1518.78*') { throw "Unexpected installed runtime: $($runtime.VersionInfo.ProductVersion)" }
+          $process = Start-Process -FilePath $app -PassThru
+          Start-Sleep -Seconds 15
+          $process.Refresh()
+          if ($process.HasExited) { throw "Legacy app exited during smoke-test with code $($process.ExitCode)" }
+          $webview = Get-CimInstance Win32_Process -Filter "Name = 'msedgewebview2.exe'" | Where-Object { $_.ExecutablePath -like "$installDir*" }
+          if (-not $webview) { throw 'The app did not start its bundled WebView2 109 process' }
+          Stop-Process -Id $process.Id -Force
+          Write-Host "Legacy app started with bundled WebView2 $($runtime.VersionInfo.ProductVersion)"
       - name: Collect build artifacts
         shell: pwsh
         run: |
