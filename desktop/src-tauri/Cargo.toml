@@ -22,7 +22,7 @@ tauri-plugin-deep-link = "=2.4.10"
 tauri-plugin-dialog = "=2.5.0"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "gzip", "blocking", "json"] }
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "blocking", "json"] }
 
 [target.'cfg(target_os = "windows")'.dependencies]
 window-vibrancy = { version = "=0.6.0", optional = true }
