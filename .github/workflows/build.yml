@@ -85,7 +85,12 @@ jobs:
           $process.Refresh()
           if ($process.HasExited) { throw "Legacy app exited during smoke-test with code $($process.ExitCode)" }
           $webview = Get-CimInstance Win32_Process -Filter "Name = 'msedgewebview2.exe'" | Where-Object { $_.ExecutablePath -like "$installDir*" }
-          if (-not $webview) { throw 'The app did not start its bundled WebView2 109 process' }
+          if (-not $webview) {
+            $allWebview = Get-CimInstance Win32_Process -Filter "Name = 'msedgewebview2.exe'" | Select-Object ProcessId, ParentProcessId, ExecutablePath, CommandLine
+            Write-Host "Install directory: $installDir"
+            Write-Host "WebView processes: $($allWebview | ConvertTo-Json -Depth 4 -Compress)"
+            throw 'The app did not start a WebView process from its fixed runtime'
+          }
           Write-Host "Legacy app started with bundled WebView2 $($runtime.VersionInfo.ProductVersion)"
       - name: Capture Legacy screenshot
         if: github.ref == 'refs/heads/legacy'
