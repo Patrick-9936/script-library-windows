@@ -37,7 +37,6 @@ jobs:
           cargo generate-lockfile
           cargo update -p async-compression --precise 0.4.35
           cargo update -p compression-codecs --precise 0.4.34
-          cargo update -p compression-codecs --precise 0.4.34
           (Get-Content Cargo.lock -Raw) -replace 'version = 4', 'version = 3' | Set-Content Cargo.lock -NoNewline
           rustup toolchain install 1.77.2 --profile minimal
       - name: Download and verify legacy WebView2 runtime
