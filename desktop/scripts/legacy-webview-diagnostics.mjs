@@ -9,10 +9,18 @@ const socket = new WebSocket(debugUrl);
 let nextId = 0;
 const pending = new Map();
 const errors = [];
+const rejectPending = reason => {
+  for (const { reject, timer } of pending.values()) {
+    clearTimeout(timer);
+    reject(reason);
+  }
+  pending.clear();
+};
 socket.addEventListener("message", event => {
   const message = JSON.parse(event.data);
   if (message.id && pending.has(message.id)) {
-    const { resolve, reject } = pending.get(message.id);
+    const { resolve, reject, timer } = pending.get(message.id);
+    clearTimeout(timer);
     pending.delete(message.id);
     if (message.error) reject(new Error(message.error.message));
     else resolve(message.result);
@@ -25,6 +33,8 @@ socket.addEventListener("message", event => {
     errors.push(message.params.entry.text);
   }
 });
+socket.addEventListener("error", () => rejectPending(new Error("WebView2 debugging socket error")));
+socket.addEventListener("close", () => rejectPending(new Error("WebView2 debugging socket closed")));
 await new Promise((resolve, reject) => {
   socket.addEventListener("open", resolve, { once: true });
   socket.addEventListener("error", reject, { once: true });
@@ -32,8 +42,18 @@ await new Promise((resolve, reject) => {
 
 const send = (method, params = {}) => new Promise((resolve, reject) => {
   const id = ++nextId;
-  pending.set(id, { resolve, reject });
-  socket.send(JSON.stringify({ id, method, params }));
+  const timer = setTimeout(() => {
+    pending.delete(id);
+    reject(new Error(`WebView2 debugging command timed out: ${method}`));
+  }, 8000);
+  pending.set(id, { resolve, reject, timer });
+  try {
+    socket.send(JSON.stringify({ id, method, params }));
+  } catch (error) {
+    clearTimeout(timer);
+    pending.delete(id);
+    reject(error);
+  }
 });
 
 await send("Runtime.enable");

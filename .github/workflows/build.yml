@@ -100,7 +100,7 @@ jobs:
           $app = Join-Path $env:LOCALAPPDATA 'Script Library Legacy/script-library.exe'
           if (-not (Test-Path $app)) { throw "Legacy app not found at $app" }
           Stop-Process -Name script-library -Force -ErrorAction SilentlyContinue
-          $env:WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS = '--remote-debugging-port=9222'
+          $env:WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS = '--remote-debugging-port=9222 --remote-allow-origins=*'
           $process = Start-Process -FilePath $app -PassThru
           $deadline = (Get-Date).AddSeconds(30)
           do {
