@@ -63,7 +63,7 @@ jobs:
         run: |
           if ('${{ github.ref }}' -eq 'refs/heads/legacy') {
             $env:RUSTUP_TOOLCHAIN = '1.77.2'
-            npx --yes @tauri-apps/cli@2.11.4 build --no-default-features --features legacy
+          npx --yes @tauri-apps/cli@2.11.4 build -- --no-default-features --features legacy
           } else {
             npx --yes @tauri-apps/cli@^2 build
           }
