@@ -1,0 +1,51 @@
+name: Windows source build
+on:
+  push:
+    branches: [main, legacy]
+    paths:
+      - 'desktop/**'
+      - 'web/**'
+      - 'i18n/**'
+      - '.github/workflows/build.yml'
+  pull_request:
+    paths:
+      - 'desktop/**'
+      - 'web/**'
+      - 'i18n/**'
+      - '.github/workflows/build.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: desktop/src-tauri
+      - name: Build bundled UI
+        run: node desktop/scripts/build-ui.mjs
+      - name: Build application and installer
+        working-directory: desktop/src-tauri
+        run: npx --yes @tauri-apps/cli@^2 build
+      - name: Collect build artifacts
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+          Copy-Item desktop/src-tauri/target/release/script-library.exe dist/Script-Library-Windows.exe
+          Copy-Item desktop/src-tauri/Cargo.lock dist/Cargo.lock
+          $installer = Get-ChildItem desktop/src-tauri/target/release/bundle/nsis/*.exe | Select-Object -First 1
+          if (-not $installer) { throw 'NSIS installer was not generated' }
+          Copy-Item $installer.FullName dist/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: script-library-windows-build
+          path: dist/**
+          if-no-files-found: error

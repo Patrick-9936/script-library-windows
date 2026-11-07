@@ -1,0 +1,612 @@
+/* Chrome that only the desktop window has. The page itself is shared with the
+   site and the phone app, so everything here is additive. */
+
+:root {
+  --sl-titlebar: 38px;
+  --sl-glass: color-mix(in srgb, var(--card) 78%, transparent);
+}
+
+/* The window is undecorated, so the page owns the top edge. */
+body {
+  padding-top: var(--sl-titlebar);
+}
+
+/* Only a window that actually got Mica may let the material through; an
+   opaque page everywhere else keeps the edges clean on Windows 10. */
+body.sl-mica {
+  background: transparent;
+}
+
+body.sl-mica .app {
+  background: color-mix(in srgb, var(--page) 84%, transparent);
+}
+
+body.sl-mica .topbar,
+body.sl-mica .sidebar {
+  background: transparent;
+}
+
+.sl-titlebar {
+  position: fixed;
+  inset: 0 0 auto 0;
+  height: var(--sl-titlebar);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 0 0 10px;
+  background: var(--sl-glass);
+  backdrop-filter: blur(24px) saturate(140%);
+  border-bottom: 1px solid var(--line);
+  z-index: 10000;
+  user-select: none;
+}
+
+.sl-titlebar-drag {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.sl-titlebar > * {
+  position: relative;
+  z-index: 1;
+}
+
+.sl-titlebar-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  color: var(--muted);
+  pointer-events: none;
+}
+
+.sl-icon-button,
+.sl-window-button {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 26px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.sl-icon-button:hover,
+.sl-window-button:hover {
+  background: var(--soft);
+  color: var(--ink);
+}
+
+.sl-window-buttons {
+  display: flex;
+  gap: 2px;
+  margin-left: auto;
+  align-self: stretch;
+  align-items: center;
+  padding-right: 4px;
+}
+
+.sl-window-button {
+  width: 44px;
+  height: 100%;
+  border-radius: 0;
+}
+
+.sl-window-button.close:hover {
+  background: #d13438;
+  color: #fff;
+}
+
+.sl-window-button svg {
+  width: 10px;
+  height: 10px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.2;
+}
+
+/* Sticky pieces move down by the height of the window chrome. */
+body .topbar {
+  top: var(--sl-titlebar);
+}
+
+body .sidebar {
+  top: calc(var(--sl-titlebar) + 64px);
+  height: calc(100vh - var(--sl-titlebar) - 64px);
+}
+
+body .battle-launch-bar {
+  top: calc(var(--sl-titlebar) + 60px);
+}
+
+/* Compact rail: icons only, labels on hover. */
+body.sl-compact .shell {
+  grid-template-columns: 72px minmax(0, 1fr);
+}
+
+body.sl-compact .sidebar {
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
+body.sl-compact .sidebar > a {
+  justify-content: center;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+body.sl-compact .sidebar > a > span:last-child,
+body.sl-compact .sidebar-foot span:last-child {
+  display: none;
+}
+
+body.sl-compact .sidebar-foot {
+  justify-content: center;
+}
+
+/* Wide screens get more content per row, small ones stay readable. */
+@media (min-width: 1600px) {
+  .shell {
+    max-width: 1760px;
+  }
+
+  .grid {
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  }
+}
+
+
+
+/* ---------------------------------------------------------------- palette */
+
+.sl-palette {
+  position: fixed;
+  inset: var(--sl-titlebar) 0 0 0;
+  z-index: 20000;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 8vh 16px 16px;
+  background: rgba(10, 12, 20, 0.42);
+  backdrop-filter: blur(3px);
+}
+
+.sl-palette-box {
+  width: min(720px, 100%);
+  background: var(--card);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.35);
+  overflow: hidden;
+}
+
+.sl-palette-input {
+  width: 100%;
+  height: 56px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: transparent;
+  color: var(--ink);
+  padding: 0 18px;
+  font-size: 16px;
+  outline: none;
+}
+
+.sl-palette-list {
+  max-height: min(52vh, 460px);
+  overflow: auto;
+  padding: 6px;
+}
+
+.sl-palette-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 11px;
+  background: transparent;
+  color: var(--ink);
+  text-align: left;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.sl-palette-item.active,
+.sl-palette-item:hover {
+  background: var(--soft);
+  color: var(--accent);
+}
+
+.sl-palette-title {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.sl-palette-hint-text {
+  flex: none;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.sl-palette-empty {
+  padding: 18px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.sl-palette-hint {
+  display: flex;
+  gap: 14px;
+  padding: 9px 14px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 11px;
+}
+
+/* The mini window is only the search field. */
+body.sl-mini .topbar,
+body.sl-mini .sidebar,
+body.sl-mini .mobile-nav {
+  display: none !important;
+}
+
+body.sl-mini .shell {
+  display: block;
+  max-width: none;
+}
+
+body.sl-mini main {
+  padding: 10px 12px;
+}
+
+body.sl-mini .sl-palette {
+  background: transparent;
+  backdrop-filter: none;
+  padding: 0;
+}
+
+body.sl-mini .sl-palette-box {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+body.sl-mini .sl-palette-list {
+  flex: 1;
+  max-height: none;
+}
+
+/* --------------------------------------------------------------- settings */
+
+.sl-settings {
+  position: fixed;
+  inset: var(--sl-titlebar) 0 0 0;
+  z-index: 21000;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 4vh 16px 24px;
+  background: rgba(10, 12, 20, 0.45);
+  backdrop-filter: blur(4px);
+}
+
+.sl-settings-box {
+  display: flex;
+  flex-direction: column;
+  width: min(760px, 100%);
+  max-height: 100%;
+  background: var(--card);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.35);
+  overflow: hidden;
+}
+
+.sl-settings-box > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--line);
+}
+
+.sl-settings-title {
+  margin: 0;
+  font-size: 17px;
+  letter-spacing: -0.02em;
+}
+
+.sl-settings-path {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.sl-settings-close {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.sl-settings-body {
+  overflow: auto;
+  padding: 6px 20px 20px;
+}
+
+.sl-settings-body section {
+  padding: 16px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.sl-settings-body section:last-child {
+  border-bottom: 0;
+}
+
+.sl-settings-body h3 {
+  margin: 0 0 10px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--muted);
+}
+
+.sl-segment {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--soft);
+}
+
+.sl-segment button {
+  border: 0;
+  border-radius: 9px;
+  padding: 8px 14px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.sl-segment button.active {
+  background: var(--card);
+  color: var(--accent);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+}
+
+.sl-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.sl-swatches button {
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 11px;
+  background: var(--soft);
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.sl-swatches button::after {
+  content: "";
+  position: absolute;
+  inset: 6px;
+  border-radius: 7px;
+  background: var(--swatch);
+  border: 1px dashed var(--line);
+}
+
+.sl-swatches button.active {
+  border-color: var(--accent);
+}
+
+.sl-swatches button span {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+.sl-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.sl-check input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent);
+}
+
+.sl-note {
+  margin: 6px 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.sl-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.sl-actions button {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 8px 13px;
+  background: var(--card);
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.sl-actions button:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.sl-keys {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 7px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.sl-keys kbd {
+  display: inline-block;
+  min-width: 20px;
+  padding: 2px 6px;
+  border: 1px solid var(--line);
+  border-bottom-width: 2px;
+  border-radius: 6px;
+  background: var(--soft);
+  color: var(--ink);
+  font: 11px/1.5 ui-monospace, SFMono-Regular, Consolas, monospace;
+  text-align: center;
+}
+
+.sl-settings-foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 14px 20px;
+  border-top: 1px solid var(--line);
+}
+
+.sl-settings-foot button {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 8px 13px;
+  background: var(--card);
+  color: var(--ink);
+  font-size: 12px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.sl-file-content {
+  margin: 16px 0;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--soft);
+  max-height: 52vh;
+  overflow: auto;
+  white-space: pre;
+  font: 12px/1.6 ui-monospace, SFMono-Regular, Consolas, monospace;
+}
+
+body.sl-transparent {
+  background: transparent !important;
+}
+
+body.sl-dense main {
+  padding-top: 18px;
+}
+
+body.sl-dense .script-card {
+  padding: 14px;
+  min-height: 168px;
+}
+
+body.sl-spacious main {
+  padding-top: 42px;
+}
+
+body.sl-spacious .grid {
+  gap: 18px;
+}
+
+.sl-accent-editor,
+.sl-accent-rgb {
+  display: flex;
+  align-items: end;
+  flex-wrap: wrap;
+  gap: 9px;
+  margin-top: 12px;
+}
+
+.sl-accent-editor label,
+.sl-accent-rgb label {
+  display: grid;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.sl-accent-editor input[type="text"],
+.sl-accent-rgb input {
+  box-sizing: border-box;
+  width: 88px;
+  min-height: 32px;
+  padding: 5px 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--card);
+  color: var(--ink);
+}
+
+.sl-accent-editor input[type="color"] {
+  width: 46px;
+  height: 32px;
+  padding: 2px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--card);
+}
+
+.sl-accent-editor [data-accent-reset] {
+  min-height: 32px;
+  padding: 5px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--card);
+  color: var(--ink);
+  cursor: pointer;
+}
