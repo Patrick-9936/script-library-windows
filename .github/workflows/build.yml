@@ -80,6 +80,7 @@ jobs:
           $runtime = Get-ChildItem $installDir -Filter msedgewebview2.exe -Recurse | Select-Object -First 1
           if (-not $runtime) { throw 'Fixed WebView2 109 runtime was not installed with the application' }
           if ($runtime.VersionInfo.ProductVersion -notlike '109.0.1518.78*') { throw "Unexpected installed runtime: $($runtime.VersionInfo.ProductVersion)" }
+          $env:WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS = '--remote-debugging-port=9222'
           $process = Start-Process -FilePath $app -PassThru
           Start-Sleep -Seconds 15
           $process.Refresh()
@@ -91,21 +92,16 @@ jobs:
         if: github.ref == 'refs/heads/legacy'
         shell: pwsh
         run: |
-          Add-Type -AssemblyName System.Drawing
-          Add-Type -AssemblyName System.Windows.Forms
-          $process = Get-Process -Name script-library | Select-Object -First 1
-          if (-not $process) { throw 'Legacy app is not running for screenshot capture' }
-          $null = $process.WaitForInputIdle(10000)
-          Start-Sleep -Seconds 3
-          $screen = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
-          $bitmap = New-Object System.Drawing.Bitmap($screen.Width, $screen.Height)
-          $graphics = [System.Drawing.Graphics]::FromImage($bitmap)
-          $graphics.CopyFromScreen($screen.Location, [System.Drawing.Point]::Empty, $screen.Size)
           New-Item -ItemType Directory -Force -Path dist/screenshots | Out-Null
-          $bitmap.Save((Join-Path (Resolve-Path dist/screenshots) 'Legacy-Windows-SmokeTest.png'), [System.Drawing.Imaging.ImageFormat]::Png)
-          $graphics.Dispose()
-          $bitmap.Dispose()
-          Stop-Process -Id $process.Id -Force
+          $deadline = (Get-Date).AddSeconds(30)
+          do {
+            try { $targets = Invoke-RestMethod -Uri 'http://127.0.0.1:9222/json/list' -TimeoutSec 2; break }
+            catch { Start-Sleep -Seconds 1 }
+          } while ((Get-Date) -lt $deadline)
+          $target = $targets | Where-Object { $_.type -eq 'page' } | Select-Object -First 1
+          if (-not $target) { throw 'Could not connect to Legacy WebView2 diagnostics endpoint' }
+          node desktop/scripts/legacy-webview-diagnostics.mjs $target.webSocketDebuggerUrl dist/screenshots/Legacy-Windows.png dist/legacy-webview-diagnostics.json
+          Stop-Process -Name script-library -Force -ErrorAction SilentlyContinue
       - name: Collect build artifacts
         shell: pwsh
         run: |
@@ -134,6 +130,7 @@ jobs:
           prerelease: true
           make_latest: false
           fail_on_unmatched_files: true
+          overwrite_files: true
           files: dist/**
           body: |
             Предварительная сборка Script Library Legacy для старых версий Windows.
