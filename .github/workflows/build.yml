@@ -16,7 +16,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   windows:
@@ -86,8 +86,26 @@ jobs:
           if ($process.HasExited) { throw "Legacy app exited during smoke-test with code $($process.ExitCode)" }
           $webview = Get-CimInstance Win32_Process -Filter "Name = 'msedgewebview2.exe'" | Where-Object { $_.ExecutablePath -like "$installDir*" }
           if (-not $webview) { throw 'The app did not start its bundled WebView2 109 process' }
-          Stop-Process -Id $process.Id -Force
           Write-Host "Legacy app started with bundled WebView2 $($runtime.VersionInfo.ProductVersion)"
+      - name: Capture Legacy screenshot
+        if: github.ref == 'refs/heads/legacy'
+        shell: pwsh
+        run: |
+          Add-Type -AssemblyName System.Drawing
+          Add-Type -AssemblyName System.Windows.Forms
+          $process = Get-Process -Name script-library | Select-Object -First 1
+          if (-not $process) { throw 'Legacy app is not running for screenshot capture' }
+          $null = $process.WaitForInputIdle(10000)
+          Start-Sleep -Seconds 3
+          $screen = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
+          $bitmap = New-Object System.Drawing.Bitmap($screen.Width, $screen.Height)
+          $graphics = [System.Drawing.Graphics]::FromImage($bitmap)
+          $graphics.CopyFromScreen($screen.Location, [System.Drawing.Point]::Empty, $screen.Size)
+          New-Item -ItemType Directory -Force -Path dist/screenshots | Out-Null
+          $bitmap.Save((Join-Path (Resolve-Path dist/screenshots) 'Legacy-Windows-SmokeTest.png'), [System.Drawing.Imaging.ImageFormat]::Png)
+          $graphics.Dispose()
+          $bitmap.Dispose()
+          Stop-Process -Id $process.Id -Force
       - name: Collect build artifacts
         shell: pwsh
         run: |
@@ -106,3 +124,23 @@ jobs:
           name: script-library-windows-build
           path: dist/**
           if-no-files-found: error
+      - name: Publish Legacy preview release
+        if: github.ref == 'refs/heads/legacy'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0.0-legacy
+          name: Script Library Legacy 1.0.0 — предварительная версия
+          target_commitish: ${{ github.sha }}
+          prerelease: true
+          make_latest: false
+          fail_on_unmatched_files: true
+          files: dist/**
+          body: |
+            Предварительная сборка Script Library Legacy для старых версий Windows.
+
+            - Отдельная сборка с Rust 1.77.2.
+            - В комплект включён проверенный WebView2 Runtime 109.0.1518.78.
+            - Приложение и установщик прошли smoke-test в CI.
+            - Исходный код доступен в ветке `legacy` и в архиве исходников этого тега.
+
+            Важно: проверка запуска выполнена на CI-образе Windows Server, а не на реальных Windows 7/8 или Windows 10 до 1809. Совместимость с этими версиями пока требует проверки на соответствующих системах.
