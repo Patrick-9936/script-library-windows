@@ -153,7 +153,7 @@ fn sl_window_open(
 
     let window = builder.build().map_err(|error| error.to_string())?;
 
-    #[cfg(target_os = "windows")]
+    #[cfg(all(target_os = "windows", feature = "mica"))]
     let _ = window_vibrancy::apply_mica(&window, None);
 
     let script = format!(

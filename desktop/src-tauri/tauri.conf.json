@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Script Library",
-  "version": "1.0.0",
-  "identifier": "gg.nulls.library.desktop",
+  "productName": "Script Library Legacy",
+  "version": "1.0.0-legacy.1",
+  "identifier": "gg.nulls.library.desktop.legacy",
   "build": {
     "frontendDist": "../ui"
   },
@@ -40,7 +40,7 @@
       "nsis"
     ],
     "category": "Utility",
-    "shortDescription": "Каталог скриптов Null's Brawl",
+      "shortDescription": "Каталог скриптов Null's Brawl — Legacy",
     "longDescription": "Каталог скриптов Null's Brawl: поиск, авторы, код, избранное и запуск боя прямо с компьютера.",
     "icon": [
       "icons/32x32.png",
@@ -50,8 +50,8 @@
     ],
     "windows": {
       "webviewInstallMode": {
-        "type": "embedBootstrapper",
-        "silent": false
+        "type": "fixedRuntime",
+        "path": "./WebView2Runtime"
       },
       "nsis": {
         "installMode": "currentUser",
