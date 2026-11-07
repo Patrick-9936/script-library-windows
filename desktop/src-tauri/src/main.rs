@@ -420,11 +420,11 @@ fn sl_window_state(window: tauri::WebviewWindow) -> bool {
 
 #[tauri::command]
 fn sl_window_material(window: WebviewWindow) -> bool {
-    #[cfg(target_os = "windows")]
+    #[cfg(all(target_os = "windows", feature = "mica"))]
     {
         return window_vibrancy::apply_mica(&window, None).is_ok();
     }
-    #[cfg(not(target_os = "windows"))]
+    #[cfg(not(all(target_os = "windows", feature = "mica")))]
     {
         let _ = window;
         false
