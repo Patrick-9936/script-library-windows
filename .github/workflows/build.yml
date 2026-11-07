@@ -80,7 +80,6 @@ jobs:
           $runtime = Get-ChildItem $installDir -Filter msedgewebview2.exe -Recurse | Select-Object -First 1
           if (-not $runtime) { throw 'Fixed WebView2 109 runtime was not installed with the application' }
           if ($runtime.VersionInfo.ProductVersion -notlike '109.0.1518.78*') { throw "Unexpected installed runtime: $($runtime.VersionInfo.ProductVersion)" }
-          $env:WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS = '--remote-debugging-port=9222'
           $process = Start-Process -FilePath $app -PassThru
           Start-Sleep -Seconds 15
           $process.Refresh()
@@ -93,13 +92,24 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path dist/screenshots | Out-Null
+          $app = Join-Path $env:LOCALAPPDATA 'Script Library Legacy/script-library.exe'
+          if (-not (Test-Path $app)) { throw "Legacy app not found at $app" }
+          Stop-Process -Name script-library -Force -ErrorAction SilentlyContinue
+          $env:WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS = '--remote-debugging-port=9222'
+          $process = Start-Process -FilePath $app -PassThru
           $deadline = (Get-Date).AddSeconds(30)
           do {
             try { $targets = Invoke-RestMethod -Uri 'http://127.0.0.1:9222/json/list' -TimeoutSec 2; break }
             catch { Start-Sleep -Seconds 1 }
           } while ((Get-Date) -lt $deadline)
           $target = $targets | Where-Object { $_.type -eq 'page' } | Select-Object -First 1
-          if (-not $target) { throw 'Could not connect to Legacy WebView2 diagnostics endpoint' }
+          if (-not $target) {
+            $process.Refresh()
+            if ($process.HasExited) { throw "Legacy app exited before diagnostics; code $($process.ExitCode)" }
+            $children = Get-CimInstance Win32_Process -Filter "Name = 'msedgewebview2.exe'" | Select-Object ProcessId, ParentProcessId, ExecutablePath, CommandLine
+            $children | ConvertTo-Json -Depth 4 | Set-Content dist/legacy-webview-processes.json
+            throw 'Could not connect to Legacy WebView2 diagnostics endpoint; process details saved'
+          }
           node desktop/scripts/legacy-webview-diagnostics.mjs $target.webSocketDebuggerUrl dist/screenshots/Legacy-Windows.png dist/legacy-webview-diagnostics.json
           Stop-Process -Name script-library -Force -ErrorAction SilentlyContinue
       - name: Collect build artifacts
